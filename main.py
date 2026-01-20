@@ -36,7 +36,7 @@ def create_output_dirs(source_name):
     return original_dir, additional_dir
 
 
-def scrape_url(url, base_url):
+def scrape_url(url):
     """Scrape a URL and return structured data"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -48,25 +48,35 @@ def scrape_url(url, base_url):
     soup = BeautifulSoup(response.content, 'lxml')
 
     # Find article titles and links
-    articles = soup.find_all('article')
+    # First try to find articles within archive container (excludes carousels/sidebars)
+    archive_container = soup.find('div', class_='malaymail-news-archive')
+    if archive_container:
+        articles = archive_container.find_all('div', class_='article-item')
+    else:
+        articles = soup.find_all('article')
 
-    if not articles:
-        # Try alternative selectors
-        articles = soup.find_all('div', class_=['article', 'news-item', 'post'])
+        if not articles:
+            # Try alternative selectors
+            articles = soup.find_all('div', class_='article-item')
+
+        if not articles:
+            # Fallback to other common patterns
+            articles = soup.find_all('div', class_=['article', 'news-item', 'post'])
 
     scraped_articles = []
-    for article in articles[:10]:  # Limit to first 10 articles
-        # Try to find title
-        title_elem = article.find(['h2', 'h3', 'h4', 'a'])
-        title = title_elem.get_text(strip=True) if title_elem else "No title found"
-
-        # Try to find link
-        link_elem = article.find('a', href=True)
-        link = link_elem['href'] if link_elem else "No link"
-
-        # Make sure link is absolute
-        if link and not link.startswith('http'):
-            link = f"{base_url}{link}"
+    for article in articles:
+        # Try to find title - prefer article-title class first
+        title_elem = article.find(class_='article-title')
+        if title_elem:
+            link_elem = title_elem.find('a', href=True)
+            title = link_elem.get_text(strip=True) if link_elem else title_elem.get_text(strip=True)
+            link = link_elem['href'] if link_elem else "No link"
+        else:
+            # Fallback to generic title search
+            title_elem = article.find(['h2', 'h3', 'h4', 'a'])
+            title = title_elem.get_text(strip=True) if title_elem else "No title found"
+            link_elem = article.find('a', href=True)
+            link = link_elem['href'] if link_elem else "No link"
 
         scraped_articles.append({"title": title, "url": link})
 
@@ -78,7 +88,7 @@ def scrape_url(url, base_url):
 
 
 def scrape_additional_url(url, source_name):
-    """Scrape an individual article page"""
+    """Scrape an individual article page and return raw HTML"""
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
     }
@@ -86,21 +96,10 @@ def scrape_additional_url(url, source_name):
     response = requests.get(url, headers=headers, timeout=30)
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.content, 'lxml')
-
-    # Extract article content
-    title = soup.find('h1')
-    title_text = title.get_text(strip=True) if title else "No title"
-
-    # Try common article body selectors
-    body = soup.find('article') or soup.find('div', class_=['article-body', 'content', 'post-content'])
-    body_text = body.get_text(strip=True) if body else ""
-
     return {
         "scraped_at": datetime.now().isoformat(),
         "source_url": url,
-        "title": title_text,
-        "content": body_text[:5000]  # Limit content length
+        "html": response.text
     }
 
 
@@ -128,7 +127,6 @@ def main():
         for source in sources:
             source_name = source['name']
             source_url = source['url']
-            base_url = source['base_url']
 
             print(f"Processing source: {source_name}")
             print(f"URL: {source_url}")
@@ -139,7 +137,7 @@ def main():
 
             # Scrape the main page
             print(f"Scraping main page...")
-            scraped_data = scrape_url(source_url, base_url)
+            scraped_data = scrape_url(source_url)
             print(f"Found {len(scraped_data['articles'])} articles")
 
             # Save original scrape
