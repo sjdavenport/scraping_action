@@ -2,7 +2,7 @@ name: Daily Task
 
 on:
   schedule:
-    - cron: '15 16 * * *' 
+    - cron: '45 16 * * *' 
   workflow_dispatch:  # Allows manual trigger for testing
 
 permissions:
