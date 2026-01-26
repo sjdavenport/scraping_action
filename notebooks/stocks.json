@@ -1,17 +1,5 @@
 [
   {
-    "name": "SNP500",
-    "url": "https://www.google.com/finance/quote/.INX:INDEXSP?hl=en"
-  },
-  {
-    "name": "FTSE100",
-    "url": "https://www.google.com/finance/quote/UKX:INDEXFTSE?hl=en"
-  },
-  {
-    "name": "FTSE250",
-    "url": "https://www.google.com/finance/quote/MCX:INDEXFTSE?hl=en"
-  },
-  {
     "name": "3IN",
     "url": "https://www.google.com/finance/quote/3IN:LON?hl=en"
   },
