@@ -52,10 +52,11 @@ def create_output_dirs(source_name):
     return dir2use
 
 def main_scraper():
+    #today = date.today() - timedelta(days=1)
     sources = load_sources()
-    yesterday = date.today() - timedelta(days=1)
-    yesterdays_date = yesterday.strftime("%d-%m-%Y")
-    ending = yesterdays_date + '.html'
+    todays_date = date.today()
+    todays_date = todays_date.strftime("%d-%m-%Y")
+    ending = todays_date + '.html'
     for i in range(len(sources)):
         name = sources[i]['name']
         url = sources[i]['url']
